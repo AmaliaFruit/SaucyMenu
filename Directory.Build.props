@@ -1,0 +1,21 @@
+<Project>
+  <!--
+    Where your Gorilla Tag install lives. The build compiles against YOUR game's DLLs (they are never
+    committed to this repo). Override in either of these ways if auto-detection misses your install:
+      dotnet build -p:GamePath="E:\Games\Gorilla Tag"
+      or create GamePath.user.props next to this file (it is git-ignored):
+        <Project><PropertyGroup><GamePath>E:\Games\Gorilla Tag</GamePath></PropertyGroup></Project>
+  -->
+  <Import Project="GamePath.user.props" Condition="Exists('$(MSBuildThisFileDirectory)GamePath.user.props')" />
+
+  <PropertyGroup>
+    <GamePath Condition="'$(GamePath)' == '' and Exists('C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag')">C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag</GamePath>
+    <GamePath Condition="'$(GamePath)' == '' and Exists('D:\SteamLibrary\steamapps\common\Gorilla Tag')">D:\SteamLibrary\steamapps\common\Gorilla Tag</GamePath>
+    <GamePath Condition="'$(GamePath)' == '' and Exists('C:\Program Files\Oculus\Software\Software\another-axiom-gorilla-tag')">C:\Program Files\Oculus\Software\Software\another-axiom-gorilla-tag</GamePath>
+
+    <!-- Both can be set directly instead of GamePath (used by CI / reference-only builds). -->
+    <GameManagedDir Condition="'$(GameManagedDir)' == ''">$(GamePath)\Gorilla Tag_Data\Managed</GameManagedDir>
+    <BepInExCoreDir Condition="'$(BepInExCoreDir)' == ''">$(GamePath)\BepInEx\core</BepInExCoreDir>
+    <BepInExPluginsDir Condition="'$(BepInExPluginsDir)' == ''">$(GamePath)\BepInEx\plugins</BepInExPluginsDir>
+  </PropertyGroup>
+</Project>

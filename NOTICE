@@ -1,0 +1,14 @@
+Saucy Menu
+Copyright (C) 2026 AmaliaFruit
+
+This program is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version. See LICENSE.
+
+Saucy Menu is an independent implementation. Its design was informed by an audit of Seralyth Menu
+(https://github.com/Seralyth/Seralyth-Menu, GPL-3.0); no Seralyth source code, assets or branding
+are included. The audit notes and the generated feature inventory in docs/ reference upstream file
+paths for documentation purposes only.
+
+Gorilla Tag is a trademark of Another Axiom. This project is not affiliated with or endorsed by
+Another Axiom. No game assemblies are distributed with this repository.

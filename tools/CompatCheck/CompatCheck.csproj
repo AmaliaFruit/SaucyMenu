@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Checks a built SaucyMenu.dll against a Gorilla Tag install WITHOUT running the game:
+    every type and member the plugin uses from the game/Unity/BepInEx must exist in that install.
+    Usage: dotnet run -''-project tools/CompatCheck -''- <SaucyMenu.dll> "<Gorilla Tag folder>"
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Mono.Cecil" Version="0.11.6" />
+  </ItemGroup>
+</Project>
