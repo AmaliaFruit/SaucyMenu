@@ -4,7 +4,7 @@
 #   bash quest/scripts/build-quest.sh /mnt/c/Users/<you>/Documents/files
 #
 # It installs build tools if missing, installs qpm (Quest Package Manager) into ~/.local/bin, downloads
-# the pinned dependencies (scotland2, beatsaber-hook, paperlog) and the Android NDK through qpm, builds,
+# the pinned dependencies (scotland2, beatsaber-hook, flamingo, paperlog) and the Android NDK through qpm, builds,
 # and copies SaucyMenu.qmod plus saucy-build.log into the folder you pass. It never touches your headset.
 set -euo pipefail
 
