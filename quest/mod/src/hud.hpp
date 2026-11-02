@@ -13,6 +13,8 @@
 class Hud {
 public:
     explicit Hud(std::function<const saucy::Theme&()> theme) : theme_(std::move(theme)) {}
+    Hud(const Hud&) = delete;
+    Hud& operator=(const Hud&) = delete;
 
     void setLine(const std::string& key, std::function<std::string()> provider);
     void removeLine(const std::string& key);
@@ -21,12 +23,14 @@ public:
 
 private:
     void build(const saucy::Theme& theme);
+    void buildParts(const saucy::Theme& theme, unity::Obj camera);
 
     std::function<const saucy::Theme&()> theme_;
     std::vector<std::pair<std::string, std::function<std::string()>>> lines_;
-    unity::Obj root_ = nullptr;
-    unity::Obj background_ = nullptr;
-    unity::Obj text_ = nullptr;
+    unity::Ref root_;
+    unity::Ref background_;
+    unity::Ref text_;
     std::string themeId_;
     double nextRefresh_ = 0;
+    double retryAt_ = 0;
 };

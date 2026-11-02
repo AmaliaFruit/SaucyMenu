@@ -28,6 +28,7 @@ enum class ShadowCastingMode : int32_t { Off = 0 };
 enum class TextAlignmentOptions : int32_t { Left = 513, Center = 514, Right = 516 };
 enum class TextOverflowModes : int32_t { Overflow = 0, Ellipsis = 1 };
 enum class TextWrappingModes : int32_t { NoWrap = 0, Normal = 1 };
+enum class HideFlags : int32_t { None = 0, DontUnloadUnusedAsset = 32 };
 
 inline saucy::Vec3 toVec(Vector3 v) { return {v.x, v.y, v.z}; }
 inline Vector3 fromVec(saucy::Vec3 v) { return {v.x, v.y, v.z}; }
@@ -36,6 +37,44 @@ inline Quaternion fromQuat(saucy::Quat q) { return {q.x, q.y, q.z, q.w}; }
 inline Color toColor(saucy::Rgba c) { return {c.r, c.g, c.b, c.a}; }
 
 using Obj = Il2CppObject*;
+
+/// A managed object the mod keeps between frames. Holds a strong GC handle, because the C++ heap and std
+/// containers are not scanned by the garbage collector: a bare Il2CppObject* stored there can be collected
+/// and later dereferenced as freed memory. Converts implicitly to Obj for calls.
+/// Only for objects kept across frames; locals within one call don't need it.
+class Ref {
+public:
+    Ref() = default;
+    Ref(Obj o) { reset(o); }  // NOLINT(google-explicit-constructor): intentional, so `member = obj` works
+    Ref(const Ref& o) { reset(o.ptr_); }
+    Ref(Ref&& o) noexcept : handle_(o.handle_), ptr_(o.ptr_) {
+        o.handle_ = 0;
+        o.ptr_ = nullptr;
+    }
+    Ref& operator=(Obj o) {
+        reset(o);
+        return *this;
+    }
+    Ref& operator=(const Ref& o) {
+        if (this != &o) reset(o.ptr_);
+        return *this;
+    }
+    Ref& operator=(Ref&& o) noexcept;
+    ~Ref() { release(); }
+
+    operator Obj() const { return ptr_; }  // NOLINT(google-explicit-constructor)
+    Obj get() const { return ptr_; }
+    void reset(Obj o = nullptr);
+
+private:
+    void release() noexcept;
+    uint32_t handle_ = 0;
+    Obj ptr_ = nullptr;
+};
+
+/// Throws if o is null. beatsaber-hook does not null-check instance calls (a null instance is a segfault,
+/// not an exception), so every instance call in unity.cpp goes through this.
+Obj req(Obj o, char const* what);
 
 /// False for null and for Unity objects that have been destroyed (UnityEngine.Object's bool operator).
 bool alive(Obj o);
@@ -98,3 +137,5 @@ DEFINE_IL2CPP_CLASS(unity::TextOverflowModes, "TMPro", "TextOverflowModes");
 MARK_VAL_T(unity::TextOverflowModes);
 DEFINE_IL2CPP_CLASS(unity::TextWrappingModes, "TMPro", "TextWrappingModes");
 MARK_VAL_T(unity::TextWrappingModes);
+DEFINE_IL2CPP_CLASS(unity::HideFlags, "UnityEngine", "HideFlags");
+MARK_VAL_T(unity::HideFlags);

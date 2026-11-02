@@ -8,8 +8,8 @@
 
 #include <exception>
 #include <filesystem>
-#include <memory>
-#include <optional>
+#include <string>
+#include <unordered_map>
 
 #include <fstream>  // paperlog's backtrace.hpp uses std::ifstream without including it
 #include "scotland2/shared/loader.hpp"
@@ -37,6 +37,8 @@ public:
 };
 
 modloader::ModInfo modInfo{MOD_ID, VERSION, 0};
+
+std::string describe(const std::exception& e, bool withBacktrace);
 
 /// Composition root: owns settings, registry, menu, renderer and HUD for the life of the game.
 struct Host {
@@ -68,12 +70,19 @@ struct Host {
         registry.restoreFromSettings();
     }
 
+    /// Runs first, on its own, every frame: nothing that fails later in the frame can skip it.
+    void gate() { registry.enforceGate(); }
+
     void before() {
-        input.poll();
-        registry.enforceGate();
+        try {
+            input.poll();
+        } catch (...) {
+            input = game::Input{};  // never act on stale button state (e.g. Fly kept flying)
+            throw;
+        }
         menu.poll();
         bool menuButton = settings.data().menuHand == saucy::MenuHand::Left ? input.leftSecondary : input.rightSecondary;
-        renderer.setOpen(menuButton && game::tagger() != nullptr);
+        renderer.setOpen(menuButton && game::tagger() != nullptr, now());
         registry.tick(saucy::TickPhase::Update);
         registry.tick(saucy::TickPhase::PreLocomotion);
     }
@@ -92,40 +101,70 @@ struct Host {
             if (settings.data().haptics) game::vibrate(left, 0.5f, 0.04f);
             if (settings.data().buttonSounds) game::playLocalClick(left);
         } catch (const std::exception& e) {
-            logger.warn("Press feedback failed: {}", e.what());
+            logger.warn("Press feedback failed: {}", describe(e, false));
         }
     }
 };
 
-std::unique_ptr<Host> host;
+// Deliberately never deleted: a destructor running at process exit could race a last hook call.
+// Shutting down after repeated errors switches everything off and stops using it instead.
+Host* host = nullptr;
 bool hostFailed = false;
-int consecutiveErrors = 0;
+bool frameFailed = false;
+int failedFrames = 0;
+constexpr int kMaxFailedFrames = 120;  // about 1.5 s of every frame failing
+
+/// The message without side effects. beatsaber-hook's trace_exception::what() also writes a 256-frame
+/// backtrace to the log, which would flood it if called every frame; that's done once per message instead.
+std::string describe(const std::exception& e, bool withBacktrace) {
+    if (auto* t = dynamic_cast<const i2c::trace_exception*>(&e)) {
+        if (withBacktrace) t->log_backtrace();
+        return t->std::runtime_error::what();
+    }
+    return e.what();
+}
+std::string rawMessage(const std::exception* e) { return e ? describe(*e, false) : std::string("unknown exception"); }
+
+/// Logs the first few occurrences of each distinct error, then goes quiet about that one.
+void reportError(const char* phase, const std::exception* e) {
+    static std::unordered_map<std::string, int> seen;
+    if (seen.size() > 64) seen.clear();
+    int& count = seen[std::string(phase) + ": " + rawMessage(e)];
+    if (++count > 3) return;
+    std::string message = e ? describe(*e, count == 1) : rawMessage(nullptr);
+    logger.error("{} failed: {}{}", phase, message, count == 3 ? " (further repeats not logged)" : "");
+}
 
 void runSafely(const char* phase, void (Host::*step)()) {
     if (!host) return;
     try {
-        (host.get()->*step)();
-        consecutiveErrors = 0;
+        (host->*step)();
     } catch (const std::exception& e) {
-        logger.error("{} failed: {}", phase, e.what());
-        ++consecutiveErrors;
+        reportError(phase, &e);
+        frameFailed = true;
     } catch (...) {
-        logger.error("{} failed with an unknown exception", phase);
-        ++consecutiveErrors;
+        reportError(phase, nullptr);
+        frameFailed = true;
     }
-    // Something is persistently wrong outside any one module (e.g. a game update renamed a member the menu
-    // itself uses): switch everything off rather than throwing every frame.
-    if (consecutiveErrors > 120) {
-        logger.critical("Too many consecutive errors; disabling Saucy Menu for this session");
-        try {
-            host->registry.disableAllForShutdown();
-            host->renderer.destroy();
-            host->hud.destroy();
-        } catch (...) {
-        }
-        host.reset();
-        hostFailed = true;
+}
+
+/// Counts frames in which anything failed (not individual successes, which would reset a shared counter).
+/// Something persistently wrong outside any one module (e.g. a game update renamed a member the menu itself
+/// uses) switches everything off rather than failing every frame.
+void endFrame() {
+    if (!host) return;
+    failedFrames = frameFailed ? failedFrames + 1 : 0;
+    frameFailed = false;
+    if (failedFrames <= kMaxFailedFrames) return;
+    logger.critical("Something failed on {} frames in a row; disabling Saucy Menu for this session", failedFrames);
+    try {
+        host->registry.disableAllForShutdown();
+        host->renderer.destroy();
+        host->hud.destroy();
+    } catch (...) {
     }
+    host = nullptr;  // leaked on purpose, see above
+    hostFailed = true;
 }
 
 void ensureHost() {
@@ -135,21 +174,30 @@ void ensureHost() {
         std::filesystem::path dir = get_data_dir(modInfo.id);
         std::error_code ec;
         std::filesystem::create_directories(dir, ec);
-        host = std::make_unique<Host>((dir / "settings.json").string());
+        host = new Host((dir / "settings.json").string());
         logger.info("Saucy Menu {} ready. Hold the secondary button (Y/B) on your menu hand to open it.", VERSION);
     } catch (const std::exception& e) {
-        logger.error("Failed to start: {}", e.what());
+        logger.error("Failed to start: {}", describe(e, true));
+        hostFailed = true;
+    } catch (...) {
+        logger.error("Failed to start: unknown exception");
         hostFailed = true;
     }
 }
 
+constexpr char kHookNamespace[] = "GorillaLocomotion";
+constexpr char kHookClass[] = "GTPlayer";
+constexpr char kHookMethod[] = "LateUpdate";
+
 }  // namespace
 
-MAKE_HOOK(gtplayer_late_update, ({"GorillaLocomotion", "GTPlayer"}, "LateUpdate", true), void, Il2CppObject* self) {
+MAKE_HOOK(gtplayer_late_update, ({kHookNamespace, kHookClass}, kHookMethod, true), void, Il2CppObject* self, MethodInfo* method) {
     ensureHost();
+    runSafely("room gate", &Host::gate);
     runSafely("pre-locomotion", &Host::before);
-    gtplayer_late_update(self);
+    gtplayer_late_update(self, method);
     runSafely("late update", &Host::after);
+    endFrame();
 }
 
 extern "C" __attribute__((visibility("default"))) void setup(CModInfo* info) noexcept {
@@ -159,6 +207,13 @@ extern "C" __attribute__((visibility("default"))) void setup(CModInfo* info) noe
 
 extern "C" __attribute__((visibility("default"))) void late_load() noexcept {
     i2c::functions::initialize();
+    // INSTALL_HOOK aborts the game if the target is missing. Check first, so a game update that renames it
+    // just leaves the menu off (with a log line) instead of crashing Gorilla Tag at startup.
+    MethodInfo const* target = i2c::find_method({kHookNamespace, kHookClass}, {kHookMethod, 0});
+    if (!target || !target->methodPointer) {
+        logger.critical("{}.{}.{} not found in this game version; Saucy Menu is not loading", kHookNamespace, kHookClass, kHookMethod);
+        return;
+    }
     INSTALL_HOOK(logger, gtplayer_late_update);
     logger.info("Installed GTPlayer.LateUpdate hook");
 }

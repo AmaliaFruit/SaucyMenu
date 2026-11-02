@@ -166,7 +166,7 @@ namespace SaucyMenu.Core.Tests
 
             Assert.True(hud.Enabled);
             Assert.False(fly.Enabled);
-            Assert.DoesNotContain("fly", h.Settings.Data.EnabledModules);
+            Assert.Contains("fly", h.Settings.Data.EnabledModules); // blocked, not forgotten
             Assert.Contains("removed", h.Settings.Data.EnabledModules);
         }
 

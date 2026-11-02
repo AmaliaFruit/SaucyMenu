@@ -13,8 +13,10 @@
 class PanelRenderer {
 public:
     PanelRenderer(saucy::MenuController& controller, saucy::SettingsStore& settings);
+    PanelRenderer(const PanelRenderer&) = delete;  // callbacks capture `this`
+    PanelRenderer& operator=(const PanelRenderer&) = delete;
 
-    void setOpen(bool open);
+    void setOpen(bool open, double now);
     bool isOpen() const { return root_ != nullptr; }
     bool pointerOnLeft() const { return pointerOnLeft_; }
 
@@ -34,13 +36,14 @@ private:
     saucy::SettingsStore& settings_;
     saucy::Layout layout_;
     saucy::PressTracker tracker_;
-    std::vector<unity::Obj> boxes_;  ///< one per layout_.boxes
-    std::vector<unity::Obj> texts_;  ///< one per layout_.texts (TextMeshPro components)
-    unity::Obj root_ = nullptr;
-    unity::Obj content_ = nullptr;
-    unity::Obj pointer_ = nullptr;
-    unity::Obj toastText_ = nullptr;
-    unity::Obj toastBox_ = nullptr;
+    std::vector<unity::Ref> boxes_;  ///< one per layout_.boxes
+    std::vector<unity::Ref> texts_;  ///< one per layout_.texts (TextMeshPro components)
+    unity::Ref root_;
+    unity::Ref content_;
+    unity::Ref pointer_;
+    unity::Ref toastText_;
+    unity::Ref toastBox_;
+    double retryAt_ = 0;
     std::string shownToast_;
     bool toastVisible_ = false;
     bool pointerOnLeft_ = false;

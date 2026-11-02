@@ -148,10 +148,9 @@ void ModuleRegistry::restoreFromSettings() {
     for (const auto& id : saved) {
         if (!get(id)) continue;  // removed module: keep the id so downgrades still work
         std::string message;
-        if (!setEnabled(id, true, &message, false) && !message.empty()) {
-            settings_.setModuleEnabled(id, false, clock_());
-            log_->info("Not restoring " + id + ": " + message);
-        }
+        // A blocked restore (e.g. room state not known yet at startup) leaves the saved choice alone, so it
+        // isn't lost; the module simply stays off until the player turns it on again.
+        if (!setEnabled(id, true, &message, false) && !message.empty()) log_->info("Not restoring " + id + ": " + message);
     }
 }
 

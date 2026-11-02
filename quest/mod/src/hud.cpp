@@ -29,8 +29,15 @@ void Hud::removeLine(const std::string& key) {
 void Hud::update(double now) {
     if (lines_.empty()) return;
     const saucy::Theme& theme = theme_();
-    if (!unity::alive(root_) || themeId_ != theme.id) build(theme);
-    if (!root_ || now < nextRefresh_) return;
+    if ((!unity::alive(root_) || themeId_ != theme.id) && now >= retryAt_) {
+        try {
+            build(theme);
+        } catch (...) {
+            retryAt_ = now + 5.0;  // e.g. no font found: retry occasionally instead of every frame
+            throw;
+        }
+    }
+    if (!root_ || !text_ || !background_ || now < nextRefresh_) return;
     nextRefresh_ = now + kRefreshSeconds;
 
     std::string text;
@@ -47,15 +54,25 @@ void Hud::update(double now) {
     unity::setText(text_, text);
     float h = kLineHeight * static_cast<float>(lines_.size()) + 0.012f;
     unity::setLocalScale(unity::transformOf(background_), {kWidth, h, 0.002f});
-    i2c::run_method(i2c::run_method<Obj>(text_, "get_rectTransform"), "set_sizeDelta", unity::Vector2{kWidth - 0.02f, h});
+    i2c::run_method(unity::req(i2c::run_method<Obj>(text_.get(), "get_rectTransform"), "HUD rect"), "set_sizeDelta",
+                    unity::Vector2{kWidth - 0.02f, h});
 }
 
 void Hud::build(const saucy::Theme& theme) {
     destroy();
     Obj cam = game::headCamera();
     if (!cam) return;
+    try {
+        buildParts(theme, cam);
+    } catch (...) {
+        destroy();  // never leave a half-built HUD behind: update() would then call into null objects
+        throw;
+    }
+    themeId_ = theme.id;  // last, so a failed build is retried rather than treated as current
+    nextRefresh_ = 0;
+}
 
-    themeId_ = theme.id;
+void Hud::buildParts(const saucy::Theme& theme, Obj cam) {
     root_ = unity::newGameObject("SaucyMenu_HUD");
     Obj t = unity::transformOf(root_);
     unity::setParent(t, unity::transformOf(cam));
@@ -76,13 +93,14 @@ void Hud::build(const saucy::Theme& theme) {
 
     text_ = unity::createText(t, "HudText", {0, 0, 0}, kWidth - 0.02f, kLineHeight, "", theme.text, unity::TextAlignmentOptions::Center,
                               0.16f, false);
-    i2c::run_method(text_, "set_enableAutoSizing", false);
-    i2c::run_method(text_, "set_fontSize", 0.16f);
-    nextRefresh_ = 0;
+    i2c::run_method(text_.get(), "set_enableAutoSizing", false);
+    i2c::run_method(text_.get(), "set_fontSize", 0.16f);
 }
 
 void Hud::destroy() {
     unity::destroy(root_);
-    root_ = background_ = text_ = nullptr;
+    root_.reset();
+    background_.reset();
+    text_.reset();
     themeId_.clear();
 }

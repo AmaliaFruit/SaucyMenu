@@ -15,7 +15,7 @@ names=(
   GorillaLocomotion GTPlayer GorillaTagger ControllerInputPoller NetworkSystem VRRig Photon.Pun PhotonNetwork
   UnityEngine.Rendering TMPro TextMeshPro TMP_Settings TMP_FontAsset TextAlignmentOptions TextOverflowModes TextWrappingModes
   GameObject Transform Renderer Collider Material Shader Time Resources PrimitiveType ShadowCastingMode
-  Vector2 Vector3 Quaternion Color
+  Vector2 Vector3 Quaternion Color HideFlags
   # hook target
   LateUpdate
   # game members
@@ -30,7 +30,7 @@ names=(
   get_defaultFontAsset set_font get_rectTransform set_sizeDelta set_richText set_enableAutoSizing set_fontSizeMin set_fontSizeMax
   set_fontSize set_alignment set_overflowMode set_textWrappingMode set_text set_linearVelocity
   get_deltaTime get_unscaledDeltaTime get_realtimeSinceStartupAsDouble
-  Physics SyncTransforms get_isKinematic GetHandOffset GetHandRotOffset
+  Physics SyncTransforms get_isKinematic GetHandOffset GetHandRotOffset set_hideFlags
 )
 
 missing=0

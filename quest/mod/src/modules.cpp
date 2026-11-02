@@ -168,7 +168,7 @@ protected:
     }
 
 private:
-    void handle(Obj& slab, bool grip, bool isLeft) {
+    void handle(unity::Ref& slab, bool grip, bool isLeft) {
         if (grip && !unity::alive(slab)) slab = create(isLeft);
         else if (!grip && slab) remove(slab);
     }
@@ -192,16 +192,16 @@ private:
         return slab;
     }
 
-    static void remove(Obj& slab) {
+    static void remove(unity::Ref& slab) {
         // Deactivate first: Destroy is deferred to the end of the frame and the slab must stop being solid now.
         if (unity::alive(slab)) unity::setActive(slab, false);
         unity::destroy(slab);
-        slab = nullptr;
+        slab.reset();
     }
 
     const game::Input& input_;
-    Obj left_ = nullptr;
-    Obj right_ = nullptr;
+    unity::Ref left_;
+    unity::Ref right_;
 };
 
 // ------------------------------------------------------------------ Fly (PrivateRoomOnly)
@@ -233,6 +233,8 @@ protected:
         Obj pt = unity::transformOf(player);
         saucy::Vec3 dir = unity::forward(unity::transformOf(head));
         unity::setPose(pt, unity::position(pt) + dir * (unity::deltaTime() * speed), unity::rotation(pt));
+        // The original LateUpdate then reads the rigidbody position; push the move to physics so it isn't stale.
+        unity::syncPhysicsTransforms();
         i2c::run_method(rb, "set_linearVelocity", unity::Vector3{0, 0, 0});
     }
 

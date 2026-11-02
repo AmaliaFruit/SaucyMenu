@@ -36,8 +36,8 @@ PanelRenderer::PanelRenderer(MenuController& controller, SettingsStore& settings
     controller_.onAppearanceChanged = [this] { appearanceDirty_ = true; };
 }
 
-void PanelRenderer::setOpen(bool open) {
-    if (open && !root_) this->open();
+void PanelRenderer::setOpen(bool open, double now) {
+    if (open && !root_ && now >= retryAt_) this->open();
     else if (!open && root_) destroy();
 }
 
@@ -53,7 +53,7 @@ void PanelRenderer::open() {
 void PanelRenderer::destroy() {
     unity::destroy(root_);
     unity::destroy(pointer_);
-    root_ = content_ = pointer_ = toastText_ = toastBox_ = nullptr;
+    for (unity::Ref* r : {&root_, &content_, &pointer_, &toastText_, &toastBox_}) r->reset();
     boxes_.clear();
     texts_.clear();
     toastVisible_ = false;
@@ -63,7 +63,7 @@ void PanelRenderer::destroy() {
 
 void PanelRenderer::lateUpdate(double now) {
     if (!root_) return;
-    if (!game::tagger()) {
+    if (!game::tagger() || !unity::alive(root_)) {  // e.g. the scene unloaded under us
         destroy();
         return;
     }
@@ -71,7 +71,16 @@ void PanelRenderer::lateUpdate(double now) {
     bool menuOnLeft = settings_.data().menuHand == MenuHand::Left;
     if (!unity::alive(pointer_) || pointerOnLeft_ == menuOnLeft) createPointer(!menuOnLeft);
 
-    if (appearanceDirty_ || builtRevision_ != controller_.revision()) rebuild(now);
+    if (appearanceDirty_ || builtRevision_ != controller_.revision()) {
+        try {
+            rebuild(now);
+        } catch (...) {
+            // Don't rebuild a failing page every frame: close, and allow reopening after a pause.
+            destroy();
+            retryAt_ = now + 2.0;
+            throw;
+        }
+    }
     pose();
     detectPress(now);
     updateToast(now);
@@ -116,7 +125,8 @@ void PanelRenderer::rebuild(double now) {
     if (unity::alive(content_)) unity::destroy(unity::gameObjectOf(content_));
     boxes_.clear();
     texts_.clear();
-    toastText_ = toastBox_ = nullptr;
+    toastText_.reset();
+    toastBox_.reset();
     toastVisible_ = false;
     shownToast_.clear();
 

@@ -224,12 +224,10 @@ namespace SaucyMenu.Core.Modules
                 if (module == null)
                     continue; // removed module; leave the id so downgrades keep it
 
+                // Blocked, not forgotten: e.g. the room isn't known yet at startup. The module stays off until the
+                // player turns it on, and the saved choice is kept for the next launch.
                 if (!TrySetEnabled(id, true, out string message, persist: false) && message != null)
-                {
-                    // Gated on startup (e.g. auto-joined a public lobby): forget it rather than surprise the player later.
-                    settings.SetModuleEnabled(id, false, clock());
                     log.Info($"Not restoring {id}: {message}");
-                }
             }
         }
 

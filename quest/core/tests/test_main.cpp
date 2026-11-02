@@ -187,7 +187,8 @@ TEST(registry_restore_respects_gate) {
     auto& hud = h.add("hud"); auto& fly = h.add("fly", "fly", "Test", ModuleSafety::PrivateRoomOnly);
     h.registry.restoreFromSettings();
     CHECK(hud.enabled()); CHECK(!fly.enabled());
-    CHECK(!contains(h.settings.data().enabledModules, "fly")); CHECK(contains(h.settings.data().enabledModules, "removed"));
+    // Blocked, not forgotten: the saved choice survives, so a startup before the room is known doesn't erase it.
+    CHECK(contains(h.settings.data().enabledModules, "fly")); CHECK(contains(h.settings.data().enabledModules, "removed"));
 }
 TEST(registry_restore_off_when_not_remembering) {
     Harness h; h.settings.data().rememberEnabledModules = false; h.settings.data().enabledModules = {"hud"};

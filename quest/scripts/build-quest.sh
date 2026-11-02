@@ -5,7 +5,7 @@
 #
 # It installs build tools if missing, installs qpm (Quest Package Manager) into ~/.local/bin, downloads
 # the pinned dependencies (scotland2, beatsaber-hook, paperlog) and the Android NDK through qpm, builds,
-# and copies SaucyMenu.qmod plus build.log into the folder you pass. It never touches your headset.
+# and copies SaucyMenu.qmod plus saucy-build.log into the folder you pass. It never touches your headset.
 set -euo pipefail
 
 OUT="${1:?Pass the Windows folder to copy the result to, e.g. /mnt/c/Users/<you>/Documents/files}"

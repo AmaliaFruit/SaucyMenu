@@ -60,6 +60,8 @@ public:
     static const std::vector<std::vector<std::string>>& keyboardLayout();
 
     MenuController(ModuleRegistry& registry, SettingsStore& settings, ModuleRegistry::Clock clock, std::string version);
+    MenuController(const MenuController&) = delete;  // registers callbacks that capture `this`
+    MenuController& operator=(const MenuController&) = delete;
 
     std::function<void()> onAppearanceChanged;
     std::function<void()> onPressed;

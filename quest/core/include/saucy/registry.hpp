@@ -21,6 +21,8 @@ public:
     using Clock = std::function<double()>;
 
     ModuleRegistry(SettingsStore& settings, const IRoomState* room, ILog* log, Clock clock);
+    ModuleRegistry(const ModuleRegistry&) = delete;
+    ModuleRegistry& operator=(const ModuleRegistry&) = delete;
 
     std::function<void(const std::string&)> onNotice;  ///< short user-facing messages (toasts)
     std::function<void()> onChanged;                   ///< any enabled state changed
