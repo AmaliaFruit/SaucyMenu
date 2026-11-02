@@ -43,9 +43,11 @@ Installs cmake/ninja if missing, installs `qpm`, resolves the Android NDK and de
 
 ## Unity version
 The beatsaber-hook binary must match the game's Unity version: 9.x is built for Unity 6000.3 only, 8.2.1 for earlier
-Unity 6. Your build's `global-metadata.dat` is IL2CPP version 31, which points to Unity 6000.0–6000.2, so `qpm.json`
-pins **beatsaber-hook ^8.2.1**. This still needs confirming from `libunity.so` in the APK. If the game is (or moves to)
-Unity 6000.3, switch to `^9.4.3` and configure with `-DSAUCY_UNITY_6_3=ON`. The code compiles and links against both.
+Unity 6. The 31 Oct 2026 Gorilla Tag APK is **Unity 6000.2.9f1** (read from `libunity.so`; IL2CPP metadata v31), so
+`qpm.json` pins **beatsaber-hook ^8.2.1**. Its `libil2cpp.so` exports every il2cpp API function beatsaber-hook 8.2.1
+loads for Unity 6 (the few missing ones are Unity 2019/2021-only or remapped by beatsaber-hook).
+If a game update moves to Unity 6000.3, switch to `^9.4.3` and configure with `-DSAUCY_UNITY_6_3=ON`.
+The code compiles and links against both.
 
 ## Install (QuestPatcher, on your PC)
 1. Connect the headset (developer mode on) and open QuestPatcher. Select Gorilla Tag and patch it with the

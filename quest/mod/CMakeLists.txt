@@ -16,7 +16,7 @@ add_compile_options(-Wall -Wextra -Werror -Wno-extra-qualification -Wno-vla-cxx-
 add_compile_definitions(VERSION="${MOD_VERSION}")
 add_compile_definitions(MOD_ID="${MOD_ID}")
 # Must match the game's Unity version AND how the beatsaber-hook binary was built:
-#   Unity 6000.0-6000.2 (IL2CPP metadata v31, what Gorilla Tag ships as of Oct 2026) -> beatsaber-hook ^8.2.1, option OFF
+#   Unity 6000.0-6000.2 (IL2CPP metadata v31; Gorilla Tag is 6000.2.9f1 as of 31 Oct 2026) -> beatsaber-hook ^8.2.1, option OFF
 #   Unity 6000.3        (IL2CPP metadata v39)                                         -> beatsaber-hook ^9.4.3, option ON
 option(SAUCY_UNITY_6_3 "Game is built with Unity 6000.3 (requires beatsaber-hook 9.x in qpm.json)" OFF)
 add_compile_definitions(UNITY_6)
