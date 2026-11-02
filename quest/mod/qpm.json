@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/QuestPackageManager/QPM.Package/refs/heads/main/qpm.schema.json",
+  "version": "0.1.0",
+  "sharedDir": "shared",
+  "dependenciesDir": "extern",
+  "info": {
+    "name": "Saucy Menu",
+    "id": "saucy-menu",
+    "version": "0.1.0",
+    "url": "https://github.com/AmaliaFruit/SaucyMenu",
+    "additionalData": {
+      "overrideSoName": "libsaucy-menu.so",
+      "cmake": true
+    }
+  },
+  "workspace": {
+    "scripts": {
+      "build": [
+        "cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -B build .",
+        "cmake --build build"
+      ]
+    },
+    "ndk": "^29.0.14206865",
+    "qmodIncludeDirs": [
+      "./build",
+      "./extern/libs"
+    ],
+    "qmodIncludeFiles": [],
+    "qmodOutput": "SaucyMenu.qmod"
+  },
+  "dependencies": [
+    {
+      "id": "beatsaber-hook",
+      "versionRange": "^8.2.1",
+      "additionalData": {}
+    },
+    {
+      "id": "scotland2",
+      "versionRange": "^0.1.7",
+      "additionalData": {
+        "includeQmod": false
+      }
+    },
+    {
+      "id": "paper2_scotland2",
+      "versionRange": "^4.8.0",
+      "additionalData": {}
+    }
+  ]
+}

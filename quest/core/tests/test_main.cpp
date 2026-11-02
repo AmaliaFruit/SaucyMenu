@@ -1,4 +1,5 @@
 // Host-side tests for the Quest core (no Unity, no Android). Same cases as the C# suite.
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -10,7 +11,9 @@
 #include <string>
 #include <vector>
 
+#include "saucy/layout.hpp"
 #include "saucy/menu.hpp"
+#include "saucy/vecmath.hpp"
 #include "saucy/registry.hpp"
 #include "saucy/room_gate.hpp"
 #include "saucy/search.hpp"
@@ -373,6 +376,88 @@ TEST(menu_gate_change_bumps_revision) {
     m.menu->poll(); int before = m.menu->revision();
     m.h.room.priv = false; m.menu->poll();
     CHECK(m.menu->revision() != before); CHECK(m.menu->current().statusIsWarning);
+}
+
+
+// ------------------------------------------------------------------ vector maths
+static bool near(float a, float b, float eps = 1e-4f) { return std::fabs(a - b) <= eps; }
+static bool near(Vec3 a, Vec3 b) { return near(a.x, b.x) && near(a.y, b.y) && near(a.z, b.z); }
+TEST(math_identity_rotation) { CHECK(near(Quat{}.rotate({1, 2, 3}), Vec3{1, 2, 3})); }
+TEST(math_look_rotation_basis) {
+    // LookRotation(forward, up) maps local +z to forward and local +y to up (Unity convention).
+    Vec3 f = Vec3{-1, 0, 0}, u = Vec3{0, 0, 1};
+    Quat q = Quat::lookRotation(f, u);
+    CHECK(near(q.rotate(Vec3::forward()), f));
+    CHECK(near(q.rotate(Vec3::up()), u));
+    CHECK(near(q.rotate(Vec3::right()), u.cross(f)));
+}
+TEST(math_look_rotation_all_branches) {
+    Vec3 dirs[] = {{0, 0, 1}, {0, 0, -1}, {1, 0, 0}, {-1, 0, 0}, {0.3f, 0.2f, -0.9f}};
+    for (Vec3 d : dirs) {
+        Vec3 up = std::fabs(d.y) > 0.9f ? Vec3{0, 0, 1} : Vec3{0, 1, 0};
+        Quat q = Quat::lookRotation(d, up);
+        CHECK(near(q.rotate(Vec3::forward()), d.normalized()));
+    }
+}
+TEST(math_inverse_and_compose) {
+    Quat a = Quat::lookRotation({1, 0, 0}, {0, 1, 0}), b = Quat::lookRotation({0, 0.6f, 0.8f}, {0, 0.8f, -0.6f});
+    Vec3 v{0.2f, -0.4f, 1.3f};
+    CHECK(near(a.inverse().rotate(a.rotate(v)), v));
+    CHECK(near((a * b).rotate(v), a.rotate(b.rotate(v))));
+}
+
+// ------------------------------------------------------------------ layout + presses
+TEST(layout_home_has_row_and_footer_buttons) {
+    MenuHarness m;
+    Layout l = buildLayout(*m.menu);
+    // 6 home rows (all pressable) + 4 footer slots, of which Back/Home/<,> are disabled on home => 6 buttons.
+    CHECK_EQ(l.buttons.size(), size_t(6));
+    CHECK(l.height > 0.2f && l.height < 0.5f);
+    CHECK(l.toastText >= 0 && l.toastBox >= 0);
+    // Everything sits inside the panel bounds (toast hangs below on purpose).
+    for (size_t i = 0; i < l.boxes.size(); ++i) {
+        if (static_cast<int>(i) == l.toastBox) continue;
+        CHECK(std::fabs(l.boxes[i].center.y) <= l.height / 2.0f + 1e-4f);
+    }
+}
+TEST(layout_press_opens_category) {
+    MenuHarness m;
+    Layout l = buildLayout(*m.menu);
+    // Row 3 is "Info" (Search, Favorites, Enabled, Info, ...).
+    const LayoutButton& info = l.buttons[3];
+    PressTracker t;
+    int hit = t.update(l, {info.center.x, info.center.y, -0.005f}, 1.0);
+    CHECK_EQ(hit, 3);
+    l.buttons[hit].press();
+    CHECK_EQ(m.menu->current().title, std::string("Info"));
+}
+TEST(layout_press_is_edge_triggered_and_cooled_down) {
+    MenuHarness m;
+    Layout l = buildLayout(*m.menu);
+    Vec3 p0{l.buttons[0].center.x, l.buttons[0].center.y, 0}, p1{l.buttons[1].center.x, l.buttons[1].center.y, 0};
+    PressTracker t;
+    CHECK_EQ(t.update(l, p0, 1.0), 0);
+    CHECK_EQ(t.update(l, p0, 1.5), -1);  // resting on it
+    CHECK_EQ(t.update(l, p1, 1.1), -1);  // moved onto another within cooldown
+    CHECK_EQ(t.update(l, {0, 0, 0.5f}, 2.0), -1);  // pulled away
+    CHECK_EQ(t.update(l, p1, 2.1), 1);
+    t.blockFor(3.0, 0.3);
+    CHECK_EQ(t.update(l, {0, 0, 0.5f}, 3.0), -1);
+    CHECK_EQ(t.update(l, p0, 3.1), -1);  // blocked after rebuild
+}
+TEST(layout_too_far_in_front_is_not_a_press) {
+    MenuHarness m;
+    Layout l = buildLayout(*m.menu);
+    CHECK_EQ(hitTest(l, {l.buttons[0].center.x, l.buttons[0].center.y, -0.05f}), -1);
+}
+TEST(layout_search_has_keyboard_keys) {
+    MenuHarness m;
+    m.menu->pressRow(m.row("Search"));
+    Layout l = buildLayout(*m.menu);
+    // 28 keys + 1 "Clear search"? No: empty query shows an info row only. Footer: Back + Home.
+    CHECK_EQ(l.buttons.size(), size_t(28 + 2));
+    l.buttons[5].press();  // "F"
+    CHECK_EQ(m.menu->query(), std::string("f"));
 }
 
 int main() {

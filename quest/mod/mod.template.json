@@ -1,0 +1,15 @@
+{
+  "_QPVersion": "0.1.1",
+  "name": "${mod_name}",
+  "id": "${mod_id}",
+  "author": "AmaliaFruit",
+  "version": "${version}",
+  "packageId": "com.AnotherAxiom.GorillaTag",
+  "description": "Local-only VR menu. Movement mods only run offline, in private rooms or modded queues. Not affiliated with Another Axiom.",
+  "modloader": "Scotland2",
+  "dependencies": [],
+  "modFiles": ["${binary}"],
+  "libraryFiles": [],
+  "fileCopies": [],
+  "copyExtensions": []
+}

@@ -12,7 +12,8 @@ if(NOT RAPIDJSON_INCLUDE_DIR)
 endif()
 
 add_library(saucy_core STATIC
-  src/module.cpp src/room_gate.cpp src/registry.cpp src/search.cpp src/theme.cpp src/settings.cpp src/menu.cpp)
+  src/module.cpp src/room_gate.cpp src/registry.cpp src/search.cpp src/theme.cpp src/settings.cpp src/menu.cpp
+  src/layout.cpp)
 target_include_directories(saucy_core PUBLIC include)
 target_include_directories(saucy_core PRIVATE ${RAPIDJSON_INCLUDE_DIR})
 target_compile_options(saucy_core PRIVATE -Wall -Wextra -Werror)

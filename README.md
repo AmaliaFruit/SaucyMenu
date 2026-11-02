@@ -1,6 +1,9 @@
 # Saucy Menu
 
-A local-only VR mod menu for Gorilla Tag on PC VR (Steam or Meta PC app; Quest 3S works over Link / Air Link / Steam Link).
+A local-only VR mod menu for Gorilla Tag.
+
+- **Standalone Quest 3S** (main target): native C++ mod in [`quest/`](quest/README.md), installed with QuestPatcher.
+- **PC VR** (Steam / Meta PC app, or Quest over Link): BepInEx plugin in `src/` (this page).
 
 > Saucy Menu is a fan-made mod. It is **not affiliated with or endorsed by Another Axiom**. Using code mods in Gorilla Tag
 > can get your account banned; movement features only run offline, in private rooms or in modded queues, but you use it at your own risk.
