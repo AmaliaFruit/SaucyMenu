@@ -70,6 +70,11 @@ constexpr float kPressDepth = 0.02f;
 
 Layout buildLayout(MenuController& controller);
 
+/// True when two layouts place the same boxes and text slots in the same spots, so a renderer can update
+/// text and colours in place instead of recreating every object (only labels/colours/values differ).
+bool sameStructure(const Layout& a, const Layout& b);
+bool sameColor(Rgba a, Rgba b);
+
 /// Index of the button the fingertip (panel-local, unscaled) is inside, or -1.
 int hitTest(const Layout& layout, Vec3 localPoint);
 

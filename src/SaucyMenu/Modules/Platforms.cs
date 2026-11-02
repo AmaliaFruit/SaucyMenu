@@ -84,7 +84,10 @@ namespace SaucyMenu.Modules
         private static void Remove(ref GameObject slab)
         {
             if (slab != null)
+            {
+                slab.SetActive(false); // Destroy is deferred to end of frame; stop it being solid now
                 Object.Destroy(slab);
+            }
             slab = null;
         }
     }

@@ -69,6 +69,10 @@ void setRendererEnabled(Obj gameObject, bool enabled);
 Obj createText(Obj parent, std::string const& name, saucy::Vec3 localPos, float width, float height, std::string const& text,
                saucy::Rgba color, TextAlignmentOptions align, float maxFontSize, bool wrap);
 void setText(Obj tmp, std::string const& text);
+void setTextColor(Obj tmp, saucy::Rgba color);
+
+/// Physics.SyncTransforms(): apply transform changes to the physics scene immediately.
+void syncPhysicsTransforms();
 
 float deltaTime();
 float unscaledDeltaTime();

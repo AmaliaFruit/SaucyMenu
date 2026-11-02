@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SaucyMenu.UI
@@ -29,13 +30,27 @@ namespace SaucyMenu.UI
                 return;
 
             nextAllowed = Time.unscaledTime + Cooldown;
-            try
+            // Queued, not run here: Unity forbids DestroyImmediate inside physics callbacks, and module
+            // OnEnable/OnDisable may create or destroy objects. MenuHost runs the queue in Update.
+            if (onPress != null)
+                Pending.Enqueue(onPress);
+        }
+
+        private static readonly Queue<Action> Pending = new Queue<Action>();
+
+        public static void RunPending()
+        {
+            while (Pending.Count > 0)
             {
-                onPress?.Invoke();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Saucy Menu] Button action failed: {ex}");
+                Action action = Pending.Dequeue();
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[Saucy Menu] Button action failed: {ex}");
+                }
             }
         }
     }

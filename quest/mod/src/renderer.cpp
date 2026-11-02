@@ -54,6 +54,8 @@ void PanelRenderer::destroy() {
     unity::destroy(root_);
     unity::destroy(pointer_);
     root_ = content_ = pointer_ = toastText_ = toastBox_ = nullptr;
+    boxes_.clear();
+    texts_.clear();
     toastVisible_ = false;
     shownToast_.clear();
     builtRevision_ = -1;
@@ -90,13 +92,34 @@ void PanelRenderer::createPointer(bool onLeft) {
 }
 
 void PanelRenderer::rebuild(double now) {
-    appearanceDirty_ = false;
-    builtRevision_ = controller_.revision();
+    Layout next = buildLayout(controller_);
 
-    // Throw away the old content wholesale and draw the new page.
+    // Same boxes in the same places (e.g. a toggle or a typed letter): update colours and text in place.
+    // Recreating ~140 objects through reflection on every press would hitch the headset.
+    bool reuse = !appearanceDirty_ && unity::alive(content_) && sameStructure(layout_, next) && boxes_.size() == next.boxes.size() &&
+                 texts_.size() == next.texts.size();
+    if (reuse) {
+        for (size_t i = 0; i < next.boxes.size(); ++i)
+            if (!sameColor(layout_.boxes[i].color, next.boxes[i].color)) unity::setRendererMaterial(boxes_[i], unity::flatMaterial(next.boxes[i].color));
+        for (size_t i = 0; i < next.texts.size(); ++i) {
+            if (static_cast<int>(i) == next.toastText) continue;
+            if (layout_.texts[i].text != next.texts[i].text) unity::setText(texts_[i], next.texts[i].text);
+            if (!sameColor(layout_.texts[i].color, next.texts[i].color)) unity::setTextColor(texts_[i], next.texts[i].color);
+        }
+        layout_ = std::move(next);
+        builtRevision_ = controller_.revision();
+        return;
+    }
+
+    // Different page: throw the old content away and draw the new one.
     Obj rootT = unity::transformOf(root_);
-    Obj oldContent = content_ ? unity::gameObjectOf(content_) : nullptr;
-    unity::destroy(oldContent);
+    if (unity::alive(content_)) unity::destroy(unity::gameObjectOf(content_));
+    boxes_.clear();
+    texts_.clear();
+    toastText_ = toastBox_ = nullptr;
+    toastVisible_ = false;
+    shownToast_.clear();
+
     Obj contentGo = unity::newGameObject("Content");
     content_ = unity::transformOf(contentGo);
     unity::setParent(content_, rootT);
@@ -104,14 +127,11 @@ void PanelRenderer::rebuild(double now) {
     unity::setLocalRotation(content_, Quat{});
     unity::setLocalScale(content_, {1, 1, 1});
 
-    layout_ = buildLayout(controller_);
-    toastText_ = toastBox_ = nullptr;
-    toastVisible_ = false;
-    shownToast_.clear();
-
+    layout_ = std::move(next);
     for (size_t i = 0; i < layout_.boxes.size(); ++i) {
         const DrawBox& b = layout_.boxes[i];
         Obj go = box(content_, b.button >= 0 ? "Button" : "Box", b.center, b.size, b.color);
+        boxes_.push_back(go);
         if (static_cast<int>(i) == layout_.toastBox) {
             toastBox_ = go;
             unity::setActive(go, false);
@@ -120,6 +140,7 @@ void PanelRenderer::rebuild(double now) {
     for (size_t i = 0; i < layout_.texts.size(); ++i) {
         const DrawText& t = layout_.texts[i];
         Obj tmp = unity::createText(content_, "Text", t.center, t.width, t.height, t.text, t.color, toTmp(t.align), t.maxFontSize, t.wrap);
+        texts_.push_back(tmp);
         if (static_cast<int>(i) == layout_.toastText) {
             toastText_ = tmp;
             unity::setActive(unity::gameObjectOf(tmp), false);
@@ -129,6 +150,10 @@ void PanelRenderer::rebuild(double now) {
     if (unity::alive(pointer_)) unity::setRendererMaterial(pointer_, unity::flatMaterial(controller_.theme().pointer));
     tracker_.reset();
     tracker_.blockFor(now, 0.3);  // a finger resting where the old button was must not press the new one
+
+    // Only marked built once everything exists; if anything above threw, the next frame starts over.
+    appearanceDirty_ = false;
+    builtRevision_ = controller_.revision();
 }
 
 void PanelRenderer::pose() {
@@ -144,10 +169,12 @@ void PanelRenderer::pose() {
     // The panel faces out of the palm side, toward the other hand: +x of the left hand, -x of the right.
     Vec3 outward = left ? Vec3::right() : Vec3{-1, 0, 0};
     Vec3 back = outward * -1.0f;
-    Quat facing = s.flipMenu ? Quat::lookRotation(outward, Vec3::forward()) : Quat::lookRotation(back, Vec3::forward());
+    // Flipped = turned 180 degrees about the hand's forward axis: on the other side of the hand, facing the other way.
+    Vec3 side = s.flipMenu ? back : outward;
+    Quat facing = Quat::lookRotation(side * -1.0f, Vec3::forward());
 
     Obj t = unity::transformOf(root_);
-    unity::setPose(t, handPos + handRot.rotate(outward * (kHandOffset * scale_)), handRot * facing);
+    unity::setPose(t, handPos + handRot.rotate(side * (kHandOffset * scale_)), handRot * facing);
     unity::setLocalScale(t, {scale_, scale_, scale_});
 }
 

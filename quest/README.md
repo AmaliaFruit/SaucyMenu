@@ -10,7 +10,7 @@ using **beatsaber-hook** (a game-agnostic il2cpp library, despite the name). Sam
 - **One hook**: `GorillaLocomotion.GTPlayer.LateUpdate`, the local player's movement step. Before it: input, room gate,
   module ticks. After it: panel, HUD, settings save. Nothing else in the game is patched.
 - **No generated headers.** Game classes are looked up by name at runtime (`unity.cpp`, `game.cpp`). Every name is
-  checked against your build's `global-metadata.dat` with `scripts/check-names.sh` (104/104 found for the 31 Oct 2026 build).
+  checked against your build's `global-metadata.dat` with `scripts/check-names.sh` (109/109 found for the 31 Oct 2026 build).
 - **No colliders on the menu.** Presses are measured from your fingertip to the panel layout (`core/src/layout.cpp`),
   so you can't bump into it.
 - **Fault isolation.** Every module call is wrapped; a module that throws is switched off. If the menu itself keeps
@@ -29,7 +29,7 @@ using **beatsaber-hook** (a game-agnostic il2cpp library, despite the name). Sam
 
 ## Layout
 ```
-core/     Unity-free C++20: registry, room gate, settings, search, themes, menu, layout + hit-testing (53 host tests)
+core/     Unity-free C++20: registry, room gate, settings, search, themes, menu, layout + hit-testing (56 host tests)
 mod/      Quest game layer: src/main.cpp (entry + hook), unity/game bridges, renderer, HUD, modules; qpm.json, CMake
 scripts/  build-quest.sh (WSL build), check-names.sh (verify names against a game build)
 ```

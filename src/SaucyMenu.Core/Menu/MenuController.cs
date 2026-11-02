@@ -123,6 +123,7 @@ namespace SaucyMenu.Core.Menu
         {
             stack.RemoveRange(1, stack.Count - 1);
             Invalidate();
+            Pressed?.Invoke();
         }
 
         public void NextPage()

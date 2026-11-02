@@ -20,6 +20,13 @@ Obj playerRigidbody();  ///< GorillaTagger.rigidbody
 Obj player();           ///< GorillaLocomotion.GTPlayer.Instance
 float playerScale();    ///< GTPlayer.scale, 1 if unavailable
 
+struct HandPose {
+    saucy::Vec3 position;
+    saucy::Quat rotation;
+};
+/// The game's real hand position (controller + GTPlayer hand offsets), as other GT menus compute it. Throws if unavailable.
+HandPose trueHand(bool left);
+
 /// Haptics on one controller (GorillaTagger.StartVibration).
 void vibrate(bool left, float strengthFraction, float seconds);
 /// Plays a tap clip on your own hand's audio source only (VRRig.PlayHandTapLocal; not networked).

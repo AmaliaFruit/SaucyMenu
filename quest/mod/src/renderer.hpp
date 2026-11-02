@@ -34,6 +34,8 @@ private:
     saucy::SettingsStore& settings_;
     saucy::Layout layout_;
     saucy::PressTracker tracker_;
+    std::vector<unity::Obj> boxes_;  ///< one per layout_.boxes
+    std::vector<unity::Obj> texts_;  ///< one per layout_.texts (TextMeshPro components)
     unity::Obj root_ = nullptr;
     unity::Obj content_ = nullptr;
     unity::Obj pointer_ = nullptr;

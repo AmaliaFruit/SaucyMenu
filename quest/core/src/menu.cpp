@@ -111,6 +111,7 @@ void MenuController::back() {
 void MenuController::home() {
     stack_.resize(1);
     invalidate();
+    firePressed();
 }
 
 void MenuController::nextPage() {

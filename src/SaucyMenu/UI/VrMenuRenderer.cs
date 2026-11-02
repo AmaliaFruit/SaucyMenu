@@ -153,10 +153,11 @@ namespace SaucyMenu.UI
             float scale = s.MenuScale * playerScale;
 
             // The panel faces out of the palm side, toward the other hand: +x of the left hand, -x of the right.
+            // Flipped = turned 180 degrees about the hand's forward axis: other side of the hand, facing the other way.
             Vector3 outward = left ? Vector3.right : Vector3.left;
-            Quaternion facing = Quaternion.LookRotation(-outward, Vector3.forward);
             if (s.FlipMenu)
-                facing = Quaternion.LookRotation(outward, Vector3.forward);
+                outward = -outward;
+            Quaternion facing = Quaternion.LookRotation(-outward, Vector3.forward);
 
             root.transform.position = hand.position + hand.rotation * (outward * (HandOffset * scale));
             root.transform.rotation = hand.rotation * facing;
@@ -167,9 +168,6 @@ namespace SaucyMenu.UI
 
         private void Rebuild()
         {
-            appearanceDirty = false;
-            builtRevision = controller.Revision;
-
             for (int i = content.childCount - 1; i >= 0; i--)
                 UnityEngine.Object.Destroy(content.GetChild(i).gameObject);
             toastText = null;
@@ -266,6 +264,10 @@ namespace SaucyMenu.UI
 
             if (pointer != null)
                 pointer.GetComponent<Renderer>().sharedMaterial = Visuals.Flat(theme.Pointer.ToColor());
+
+            // Only marked built once everything exists; if anything above threw, the next frame starts over.
+            appearanceDirty = false;
+            builtRevision = controller.Revision;
         }
 
         private void DrawRow(Theme theme, MenuRow row, int index, float cy, float h, float inner)
@@ -289,10 +291,10 @@ namespace SaucyMenu.UI
                     Button("Row" + index, new Vector3(mainX, cy, 0f), new Vector2(mainW, h), fill, () => controller.PressRow(index));
 
                     string label = (row.Favorite ? "* " : string.Empty) + row.Label;
-                    Visuals.Text("Label", content, new Vector3(mainX - 0.012f, cy, TextZ), new Vector2(mainW - 0.04f, h * 0.7f),
+                    Visuals.Text("Label", content, new Vector3(mainX - 0.017f, cy, TextZ), new Vector2(mainW - 0.046f, h * 0.7f),
                         label, text, TextAlignmentOptions.Left);
                     string state = row.On ? "ON" : row.Blocked ? "LOCKED" : string.IsNullOrEmpty(row.Badge) ? "OFF" : row.Badge;
-                    Visuals.Text("State", content, new Vector3(mainX + mainW / 2f - 0.022f, cy, TextZ), new Vector2(0.04f, h * 0.5f),
+                    Visuals.Text("State", content, new Vector3(mainX + mainW / 2f - 0.02f, cy, TextZ), new Vector2(0.036f, h * 0.5f),
                         state, row.On ? text : theme.TextMuted.ToColor(), TextAlignmentOptions.Right, 0.1f);
 
                     float dx = inner / 2f - DetailW / 2f;
@@ -309,7 +311,7 @@ namespace SaucyMenu.UI
                     Button("Row" + index, new Vector3(0f, cy, 0f), new Vector2(inner, h), fill, () => controller.PressRow(index));
 
                     bool centred = row.Kind == RowKind.Action;
-                    float labelW = centred ? inner - 0.016f : inner * 0.62f;
+                    float labelW = centred ? inner - 0.016f : inner * 0.58f;
                     float labelX = centred ? 0f : -inner / 2f + 0.008f + labelW / 2f;
                     Visuals.Text("Label", content, new Vector3(labelX, cy, TextZ), new Vector2(labelW, h * 0.7f), row.Label, text,
                         centred ? TextAlignmentOptions.Center : TextAlignmentOptions.Left);

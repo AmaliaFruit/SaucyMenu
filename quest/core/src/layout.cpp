@@ -108,9 +108,10 @@ Layout buildLayout(MenuController& controller) {
             float mainW = inner - kDetailW - kGap;
             float mainX = -inner / 2.0f + mainW / 2.0f;
             b.button({mainX, cy, 0}, mainW, h, fill, [&controller, index] { controller.pressRow(index); });
-            b.text({mainX - 0.012f, cy, 0}, mainW - 0.04f, h * 0.7f, (row.favorite ? "* " : "") + row.label, text, TextAlign::Left);
+            // Label and state boxes don't overlap: label ends 4 cm before the button edge, state starts 3.8 cm before it.
+            b.text({mainX - 0.017f, cy, 0}, mainW - 0.046f, h * 0.7f, (row.favorite ? "* " : "") + row.label, text, TextAlign::Left);
             std::string state = row.on ? "ON" : row.blocked ? "LOCKED" : row.badge.empty() ? "OFF" : row.badge;
-            b.text({mainX + mainW / 2.0f - 0.022f, cy, 0}, 0.04f, h * 0.5f, state, row.on ? text : theme.textMuted, TextAlign::Right, 0.1f);
+            b.text({mainX + mainW / 2.0f - 0.02f, cy, 0}, 0.036f, h * 0.5f, state, row.on ? text : theme.textMuted, TextAlign::Right, 0.1f);
 
             float dx = inner / 2.0f - kDetailW / 2.0f;
             b.button({dx, cy, 0}, kDetailW, h, theme.button, [&controller, index] { controller.pressRowDetail(index); });
@@ -121,7 +122,7 @@ Layout buildLayout(MenuController& controller) {
             b.button({0, cy, 0}, inner, h, fill, [&controller, index] { controller.pressRow(index); });
 
             bool centred = row.kind == RowKind::Action;
-            float labelW = centred ? inner - 0.016f : inner * 0.62f;
+            float labelW = centred ? inner - 0.016f : inner * 0.58f;  // leaves a gap before the 0.34-wide value box
             float labelX = centred ? 0.0f : -inner / 2.0f + 0.008f + labelW / 2.0f;
             b.text({labelX, cy, 0}, labelW, h * 0.7f, row.label, text, centred ? TextAlign::Center : TextAlign::Left);
 
@@ -199,6 +200,31 @@ int PressTracker::update(const Layout& layout, Vec3 localPoint, double now) {
 
 void PressTracker::blockFor(double now, double seconds) {
     if (now + seconds > blockedUntil_) blockedUntil_ = now + seconds;
+}
+
+}  // namespace saucy
+
+namespace saucy {
+
+bool sameStructure(const Layout& a, const Layout& b) {
+    auto eq = [](float x, float y) { return std::fabs(x - y) < 1e-5f; };
+    auto eqv = [&](Vec3 x, Vec3 y) { return eq(x.x, y.x) && eq(x.y, y.y) && eq(x.z, y.z); };
+    if (a.boxes.size() != b.boxes.size() || a.texts.size() != b.texts.size() || a.buttons.size() != b.buttons.size()) return false;
+    if (a.toastBox != b.toastBox || a.toastText != b.toastText) return false;
+    for (size_t i = 0; i < a.boxes.size(); ++i)
+        if (!eqv(a.boxes[i].center, b.boxes[i].center) || !eqv(a.boxes[i].size, b.boxes[i].size)) return false;
+    for (size_t i = 0; i < a.texts.size(); ++i) {
+        const auto& x = a.texts[i];
+        const auto& y = b.texts[i];
+        if (!eqv(x.center, y.center) || !eq(x.width, y.width) || !eq(x.height, y.height) || x.align != y.align || x.wrap != y.wrap ||
+            !eq(x.maxFontSize, y.maxFontSize))
+            return false;
+    }
+    return true;
+}
+
+bool sameColor(Rgba a, Rgba b) {
+    return std::fabs(a.r - b.r) < 1e-4f && std::fabs(a.g - b.g) < 1e-4f && std::fabs(a.b - b.b) < 1e-4f && std::fabs(a.a - b.a) < 1e-4f;
 }
 
 }  // namespace saucy

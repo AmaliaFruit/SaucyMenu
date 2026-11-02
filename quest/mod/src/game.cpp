@@ -40,6 +40,18 @@ Obj player() {
     return r && *r && unity::alive(*r) ? *r : nullptr;
 }
 
+HandPose trueHand(bool left) {
+    Obj hand = left ? leftHand() : rightHand();
+    Obj p = player();
+    if (!hand || !p) throw std::runtime_error("hand not available");
+    saucy::Vec3 pos = unity::position(hand);
+    saucy::Quat rot = unity::rotation(hand);
+    // GTPlayer.GetHandOffset / GetHandRotOffset: where the game's own hand collider sits relative to the controller.
+    saucy::Vec3 offset = unity::toVec(i2c::run_method<unity::Vector3>(p, "GetHandOffset", left));
+    saucy::Quat rotOffset = unity::toQuat(i2c::run_method<unity::Quaternion>(p, "GetHandRotOffset", left));
+    return {pos + rot.rotate(offset * playerScale()), rot * rotOffset};
+}
+
 float playerScale() {
     Obj p = player();
     if (!p) return 1.0f;
@@ -78,7 +90,9 @@ void Input::poll() {
 
 bool RoomState::inRoom() const {
     Obj n = network();
-    return n && i2c::run_method<bool>(n, "get_InRoom");
+    // No NetworkSystem means we can't tell where we are: throw so the room gate fails closed.
+    if (!n) throw std::runtime_error("NetworkSystem not available");
+    return i2c::run_method<bool>(n, "get_InRoom");
 }
 
 bool RoomState::isPrivate() const {

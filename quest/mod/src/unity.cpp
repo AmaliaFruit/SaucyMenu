@@ -157,7 +157,11 @@ Obj createText(Obj parent, std::string const& name, saucy::Vec3 localPos, float 
     return tmp;
 }
 
+void setTextColor(Obj tmp, saucy::Rgba color) { i2c::run_method(tmp, "set_color", toColor(color)); }
+
 void setText(Obj tmp, std::string const& text) { i2c::run_method(tmp, "set_text", StringW(text)); }
+
+void syncPhysicsTransforms() { i2c::run_method({kEngine, "Physics"}, "SyncTransforms"); }
 
 float deltaTime() { return i2c::run_method<float>({kEngine, "Time"}, "get_deltaTime"); }
 float unscaledDeltaTime() { return i2c::run_method<float>({kEngine, "Time"}, "get_unscaledDeltaTime"); }

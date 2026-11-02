@@ -35,3 +35,9 @@ Check `BepInEx/LogOutput.log` contains `Saucy Menu 0.1.0 loading` and `Menu read
 ## Robustness
 - [ ] No errors in `LogOutput.log` during a 10-minute session.
 - [ ] Quitting the game with modules on: no errors; next launch restores them (movement only if not in public).
+
+## Known issues from code review (PC, not yet fixed)
+- The fingertip pointer is a Default-layer trigger; if the game's casts hit triggers, a hand could catch on it. Watch for this.
+- Every press rebuilds the whole panel (~140 objects); typing may hitch. The Quest build updates in place; port that here.
+- Platforms are placed off the controller transform rather than the game's hand offset (the Quest build uses the offset).
+- A new platform's collider may sit at the world origin for one physics step before transforms sync.

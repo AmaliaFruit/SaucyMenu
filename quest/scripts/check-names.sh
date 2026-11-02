@@ -30,6 +30,7 @@ names=(
   get_defaultFontAsset set_font get_rectTransform set_sizeDelta set_richText set_enableAutoSizing set_fontSizeMin set_fontSizeMax
   set_fontSize set_alignment set_overflowMode set_textWrappingMode set_text set_linearVelocity
   get_deltaTime get_unscaledDeltaTime get_realtimeSinceStartupAsDouble
+  Physics SyncTransforms get_isKinematic GetHandOffset GetHandRotOffset
 )
 
 missing=0

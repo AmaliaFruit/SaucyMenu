@@ -460,6 +460,39 @@ TEST(layout_search_has_keyboard_keys) {
     CHECK_EQ(m.menu->query(), std::string("f"));
 }
 
+TEST(layout_toggle_keeps_structure) {
+    MenuHarness m;
+    m.menu->pressRow(m.row("Info"));
+    Layout before = buildLayout(*m.menu);
+    m.menu->pressRow(m.row("Performance HUD"));  // only colours/labels change
+    Layout after = buildLayout(*m.menu);
+    CHECK(sameStructure(before, after));
+    bool colourChanged = false;
+    for (size_t i = 0; i < before.boxes.size(); ++i) colourChanged |= !sameColor(before.boxes[i].color, after.boxes[i].color);
+    CHECK(colourChanged);
+    m.menu->back();  // different page => different structure
+    CHECK(!sameStructure(after, buildLayout(*m.menu)));
+}
+TEST(layout_row_text_boxes_do_not_overlap) {
+    MenuHarness m;
+    m.menu->pressRow(m.row("Info"));
+    Layout l = buildLayout(*m.menu);
+    // Module row: texts[k] label, texts[k+1] state on the same y.
+    for (size_t i = 0; i + 1 < l.texts.size(); ++i) {
+        const auto& a = l.texts[i];
+        const auto& b = l.texts[i + 1];
+        if (std::fabs(a.center.y - b.center.y) > 1e-5f || a.align != TextAlign::Left || b.align != TextAlign::Right) continue;
+        CHECK(a.center.x + a.width / 2.0f <= b.center.x - b.width / 2.0f + 1e-5f);
+    }
+}
+TEST(menu_home_gives_feedback) {
+    MenuHarness m; int presses = 0;
+    m.menu->onPressed = [&] { ++presses; };
+    m.menu->pressRow(m.row("Info"));
+    m.menu->home();
+    CHECK_EQ(presses, 2);
+}
+
 int main() {
     int failed = 0;
     for (auto& t : tests()) {

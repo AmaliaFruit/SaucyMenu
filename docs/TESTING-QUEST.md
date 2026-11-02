@@ -1,6 +1,6 @@
 # Quest in-headset test checklist (0.1)
 
-Automated so far: 53 core tests (host), arm64 compile + link against beatsaber-hook 8.2.1 and 9.4.3, and all 104
+Automated so far: 56 core tests (host), arm64 compile + link against beatsaber-hook 8.2.1 and 9.4.3, and all 109
 runtime-looked-up names found in the 31 Oct 2026 `global-metadata.dat`. **Nothing below has been verified on a headset.**
 
 Logs: `adb logcat | findstr SaucyMenu` from a Windows terminal while the game runs.

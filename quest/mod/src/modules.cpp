@@ -174,8 +174,7 @@ private:
     }
 
     Obj create(bool isLeft) {
-        Obj hand = isLeft ? game::leftHand() : game::rightHand();
-        if (!hand) return nullptr;
+        game::HandPose hand = game::trueHand(isLeft);
         float scale = game::playerScale();
         saucy::Vec3 size{0.025f * scale, 0.28f * scale, 0.38f * scale};
 
@@ -183,16 +182,19 @@ private:
         Obj slab = unity::createPrimitive(unity::PrimitiveType::Cube, isLeft ? "SaucyMenu_PlatformL" : "SaucyMenu_PlatformR");
         Obj t = unity::transformOf(slab);
         unity::setLocalScale(t, size);
-        saucy::Quat rot = unity::rotation(hand);
         // Beside the palm (not around the hand) so the hand doesn't start inside the collider.
-        saucy::Vec3 side = rot.rotate(saucy::Vec3::right()) * (isLeft ? 1.0f : -1.0f);
-        unity::setPose(t, unity::position(hand) + side * (size.x / 2.0f + 0.025f * scale), rot);
+        saucy::Vec3 side = hand.rotation.rotate(saucy::Vec3::right()) * (isLeft ? 1.0f : -1.0f);
+        unity::setPose(t, hand.position + side * (size.x / 2.0f + 0.025f * scale), hand.rotation);
         unity::setRendererMaterial(slab, unity::flatMaterial({0.95f, 0.7f, 0.24f, 1.0f}));
         unity::setRendererEnabled(slab, getToggle("visible"));
+        // Push the new pose to physics now, so this frame's locomotion sees the slab at the hand, not a cube at the origin.
+        unity::syncPhysicsTransforms();
         return slab;
     }
 
     static void remove(Obj& slab) {
+        // Deactivate first: Destroy is deferred to the end of the frame and the slab must stop being solid now.
+        if (unity::alive(slab)) unity::setActive(slab, false);
         unity::destroy(slab);
         slab = nullptr;
     }
@@ -224,6 +226,7 @@ protected:
         Obj head = game::headCollider();
         Obj rb = game::playerRigidbody();
         if (!player || !head || !rb) return;
+        if (i2c::run_method<bool>(rb, "get_isKinematic")) return;  // the game itself skips movement in this state
 
         float scale = game::playerScale();
         float speed = getFloat("speed", 10.0f) * scale;

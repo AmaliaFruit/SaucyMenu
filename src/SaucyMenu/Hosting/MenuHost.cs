@@ -70,8 +70,9 @@ namespace SaucyMenu.Hosting
             bool menuButton = settings.Data.MenuHand == MenuHand.Left ? Input.LeftSecondary : Input.RightSecondary;
             renderer.SetOpen(menuButton && GorillaTagger.Instance != null);
 
+            MenuButton.RunPending();
             registry.Tick(TickPhase.Update);
-            hud.Update();
+            Guard("HUD", hud.Update);
             settings.FlushIfDirty(Now);
         }
 
@@ -89,7 +90,19 @@ namespace SaucyMenu.Hosting
             if (registry == null)
                 return;
             registry.Tick(TickPhase.LateUpdate);
-            renderer.LateUpdate(Now);
+            Guard("menu panel", () => renderer.LateUpdate(Now));
+        }
+
+        private void Guard(string what, Action action)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                log.Error($"{what} failed: {ex}");
+            }
         }
 
         private void PlayPressFeedback()
